@@ -26,11 +26,18 @@ function system_install_mercurial {
     aptitude -y install mercurial
 }
 
+function system_install_bazaar {
+    aptitude -y install bzr
+}
+
 function system_start_etc_dir_versioning {
-    hg init /etc
-    hg add /etc
-    hg commit -u root -m "Started versioning of /etc directory" /etc
-    chmod -R go-rwx /etc/.hg
+    # etckeeper defaults to bzr VCS
+    # TODO add support for other VCS
+    # see http://fnords.wordpress.com/2009/02/23/etckeeper-chronicles-1/
+    system_install_bazaar
+    aptitude -y install etckeeper
+    etckeeper init
+    bzr whoami "root"
 }
 
 function system_record_etc_dir_changes {
@@ -38,6 +45,5 @@ function system_record_etc_dir_changes {
         then MESSAGE="Committed /etc changes"
         else MESSAGE="$1"
     fi
-    hg addremove /etc
-    hg commit -u root -m "$MESSAGE" /etc
+    etckeeper commit "$MESSAGE"
 }
