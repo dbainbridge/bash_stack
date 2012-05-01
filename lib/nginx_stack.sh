@@ -383,7 +383,6 @@ function nginx_install
 	if  [ "$NGINX_USE_PASSENGER" = 1 ] ; then
 		passenger_root=`$RUBY_PREFIX/bin/passenger-config --root`
 		passenger_path="$passenger_root/ext/nginx"
-
 		
 		#bugfix for passenger 3.0.9, otherwise it won't compile
 		is_309=$(echo "$passenger_path" | grep "3\.0\.9")
@@ -394,19 +393,19 @@ function nginx_install
 			if [ -e "$passenger_path/config" ] ; then
 				cat << 'EOF' >>$passenger_path/config
 
-ngx_feature="Math library"
-ngx_feature_name=
-ngx_feature_run=no
-ngx_feature_incs="#include <math.h>"
-ngx_feature_path=
-ngx_feature_libs="-lm"
-ngx_feature_test="pow(1, 2)"
-. auto/feature
-if [ $ngx_found = yes ]; then
-    CORE_LIBS="$CORE_LIBS -lm"
-fi
+				ngx_feature="Math library"
+				ngx_feature_name=
+				ngx_feature_run=no
+				ngx_feature_incs="#include <math.h>"
+				ngx_feature_path=
+				ngx_feature_libs="-lm"
+				ngx_feature_test="pow(1, 2)"
+				. auto/feature
+				if [ $ngx_found = yes ]; then
+				    CORE_LIBS="$CORE_LIBS -lm"
+				fi
 
-EOF
+				EOF
 			fi
 			echo ""
 			echo "PATCHING BUGS IN PASSENGER 3.0.9"
