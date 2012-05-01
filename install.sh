@@ -1,7 +1,7 @@
 #!/bin/bash
 
-#INSTALL_LOCATION="/usr/local/lib/bash_stack"
-INSTALL_LOCATION="/Users/dkb/bash_stack"
+INSTALL_LOCATION="/usr/local/lib/bash_stack"
+#INSTALL_LOCATION="/Users/dkb/bash_stack"
 
 if [ "$1" ] ; then
 	INSTALL_LOCATION="$1"
