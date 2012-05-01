@@ -20,8 +20,8 @@ if [ -d ./lib ] ; then
 
 	cp -r ./lib/* "$INSTALL_LOCATION/lib"
 	cp ./bash_stack.sh "$INSTALL_LOCATION"
-	cp -r ./lib/default_html "$INSTALL_LOCATION/lib"
-	
+	cp -r ./default_html "$INSTALL_LOCATION"
+
 	echo '#!/bin/bash' > "$INSTALL_LOCATION/tmp.tmp.sh"
 	echo "BASH_STACK_INSTALL_DIR=\"$INSTALL_LOCATION\"" >> "$INSTALL_LOCATION/tmp.tmp.sh"
 	cat "$INSTALL_LOCATION/bash_stack.sh"  >> "$INSTALL_LOCATION/tmp.tmp.sh"
