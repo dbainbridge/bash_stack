@@ -404,8 +404,7 @@ function nginx_install
 				if [ $ngx_found = yes ]; then
 				    CORE_LIBS="$CORE_LIBS -lm"
 				fi
-
-				EOF
+EOF
 			fi
 			echo ""
 			echo "PATCHING BUGS IN PASSENGER 3.0.9"
