@@ -10,6 +10,7 @@ export NGINX_CONF_PATH="$NGINX_PREFIX/conf"
 export NGINX_PID_PATH="/var/run/nginx.pid"
 export NGINX_ERROR_LOG_PATH="/var/log/nginx/error.log"
 export NGINX_HTTP_LOG_PATH="/var/log/nginx"
+export NGINX_COMPILE_WITH_MODULES="--with-http_stub_status_module"
 
 export LOGRO_FREQ="monthly"
 export LOGRO_ROTA="12"
