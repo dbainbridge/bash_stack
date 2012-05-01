@@ -17,10 +17,15 @@ if [ -d ./lib ] ; then
 	# remove previous installation if it exists
 	rm -rf "$INSTALL_LOCATION"
 	mkdir -p "$INSTALL_LOCATION/lib"
+    mkdir -p "$INSTALL_LOCATION/bin"
 
 	cp -r ./lib/* "$INSTALL_LOCATION/lib"
 	cp ./bash_stack.sh "$INSTALL_LOCATION"
 	cp -r ./default_html "$INSTALL_LOCATION"
+
+    cp -r ./bin/* "$INSTALL_LOCATION/bin"
+    chmod +x ./bin/nginxcreatesite
+    chmod +x ./bin/nginxensite
 
 	echo '#!/bin/bash' > "$INSTALL_LOCATION/tmp.tmp.sh"
 	echo "BASH_STACK_INSTALL_DIR=\"$INSTALL_LOCATION\"" >> "$INSTALL_LOCATION/tmp.tmp.sh"

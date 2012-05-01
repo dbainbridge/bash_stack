@@ -1,3 +1,4 @@
 #!/bin/bash
-source ../bash_stack.sh
+source "../bash_stack.sh"
+nginx_create_site $1 $2 $3 $4 $5 $6
 
