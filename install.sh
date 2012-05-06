@@ -22,7 +22,7 @@ if [ -d ./lib ] ; then
 	cp -r ./lib/* "$INSTALL_LOCATION/lib"
 	cp ./bash_stack.sh "$INSTALL_LOCATION"
 	cp -r ./default_html "$INSTALL_LOCATION"
-
+    cp -r ./default_conf "$INSTALL_LOCATION"
     cp -r ./bin/* "$INSTALL_LOCATION/bin"
     chmod +x ./bin/nginxcreatesite
     chmod +x ./bin/nginxensite

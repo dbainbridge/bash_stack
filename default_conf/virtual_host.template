@@ -1,0 +1,19 @@
+server {
+  server_name www.DOMAIN DOMAIN;
+ 
+  root ROOT;
+ 
+  access_log /var/log/nginx/DOMAIN.access.log;
+ 
+  index index.html index.htm;
+ 
+  # serve static files directly
+  location ~* \.(jpg|jpeg|gif|css|png|js|ico|html)$ {
+    access_log off;
+    expires max;
+  }
+ 
+  location ~ /\.ht {
+    deny  all;
+  }
+}
