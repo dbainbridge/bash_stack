@@ -78,11 +78,12 @@ export NGINX_COMPILE_WITH_MODULES="--with-http_stub_status_module"
 
 export NGINX_SITES_AVAILABLE='$NGINX_PREFIX/sites-available'
 export NGINX_SITES_ENABLED='NGINX_PREFIX/sites-enabled'
+export NGINX_TEMPLATE_DIR='templates'
 export WEB_DIR='/var/www'
 
 function nginx_create_site
 {
-	// Based on script from http://www.sebdangerfield.me.uk/2011/03/automatically-creating-new-virtual-hosts-with-nginx-bash-script/
+	# Based on script from http://www.sebdangerfield.me.uk/2011/03/automatically-creating-new-virtual-hosts-with-nginx-bash-script/
 
 	
 	SED=`which sed`
@@ -109,7 +110,7 @@ function nginx_create_site
 
 	# Now we need to copy the virtual host template
 	CONFIG=$NGINX_SITES_AVAILABLE/$DOMAIN.conf
-	sudo cp $CURRENT_DIR/virtual_host.template $CONFIG
+	sudo cp $CURRENT_DIR/$NGINX_TEMPLATE_DIR/virtual_host.template $CONFIG
 	sudo $SED -i "s/DOMAIN/$DOMAIN/g" $CONFIG
 	sudo $SED -i "s!ROOT!$WEB_DIR/$SITE_DIR!g" $CONFIG
 
