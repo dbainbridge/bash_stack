@@ -12,6 +12,11 @@ export NGINX_ERROR_LOG_PATH="/var/log/nginx/error.log"
 export NGINX_HTTP_LOG_PATH="/var/log/nginx"
 export NGINX_COMPILE_WITH_MODULES="--with-http_stub_status_module"
 
+export NGINX_SITES_AVAILABLE='$NGINX_PREFIX/sites-available'
+export NGINX_SITES_ENABLED='NGINX_PREFIX/sites-enabled'
+export NGINX_TEMPLATE_DIR='templates'
+export WEB_DIR='/var/www'
+
 export LOGRO_FREQ="monthly"
 export LOGRO_ROTA="12"
 

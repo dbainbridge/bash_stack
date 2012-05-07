@@ -1,5 +1,33 @@
 #!/bin/bash
 
+#nginx settings
+NGINX_VER="1.0.20"
+NGINX_PREFIX="/opt/nginx"
+NGINX_SBIN_PATH="$NGINX_PREFIX/sbin/nginx"
+NGINX_CONF_PATH="$NGINX_PREFIX/conf"
+NGINX_PID_PATH="/var/run/nginx.pid"
+NGINX_ERROR_LOG_PATH="/var/log/nginx/error.log"
+NGINX_HTTP_LOG_PATH="/var/log/nginx"
+NGINX_COMPILE_WITH_MODULES="--with-http_stub_status_module"
+
+NGINX_SITES_AVAILABLE="$NGINX_CONF_PATH/sites-available"
+NGINX_SITES_ENABLED="$NGINX_CONF_PATH/sites-enabled"
+NGINX_TEMPLATE_DIR="templates"
+WEB_DIR="/var/www"
+
+NGINX_USER_DEFAULT="www-data"
+NGINX_GROUP_DEFAULT="www-data"
+
+LOGRO_FREQ="monthly"
+LOGRO_ROTA="12"
+
+APACHE_HTTP_PORT=8080
+APACHE_HTTPS_PORT=8443
+
+
+NGINX_SSL_ID="nginx_ssl"
+
+
 #################################
 #	PHP-FPM			#
 #################################
@@ -66,20 +94,6 @@ function perl_fcgi_install
 }
 
 
-#nginx settings
-export NGINX_VER="1.0.20"
-export NGINX_PREFIX="/opt/nginx"
-export NGINX_SBIN_PATH="$NGINX_PREFIX/sbin/nginx"
-export NGINX_CONF_PATH="$NGINX_PREFIX/conf"
-export NGINX_PID_PATH="/var/run/nginx.pid"
-export NGINX_ERROR_LOG_PATH="/var/log/nginx/error.log"
-export NGINX_HTTP_LOG_PATH="/var/log/nginx"
-export NGINX_COMPILE_WITH_MODULES="--with-http_stub_status_module"
-
-export NGINX_SITES_AVAILABLE='$NGINX_PREFIX/sites-available'
-export NGINX_SITES_ENABLED='NGINX_PREFIX/sites-enabled'
-export NGINX_TEMPLATE_DIR='templates'
-export WEB_DIR='/var/www'
 
 function nginx_create_site
 {
@@ -108,6 +122,10 @@ function nginx_create_site
 	#Replace dots with underscores
 	SITE_DIR=`echo $DOMAIN | $SED 's/\./_/g'`
 
+	# verify required site site conf directories exist
+	sudo mkdir -p $NGINX_SITES_AVAILABLE
+	sudo mkdir -p $NGINX_SITES_ENABLED
+
 	# Now we need to copy the virtual host template
 	CONFIG=$NGINX_SITES_AVAILABLE/$DOMAIN.conf
 	sudo cp $CURRENT_DIR/$NGINX_TEMPLATE_DIR/virtual_host.template $CONFIG
@@ -116,7 +134,7 @@ function nginx_create_site
 
 	# set up web root
 	sudo mkdir $WEB_DIR/$SITE_DIR
-	sudo chown nginx:nginx -R $WEB_DIR/$SITE_DIR
+	sudo chown $NGINX_USER_DEFAULT:$NGINX_GROUP_DEFAULT -R $WEB_DIR/$SITE_DIR
 	sudo chmod 600 $CONFIG
 
 	# create symlink to enable site
@@ -126,9 +144,9 @@ function nginx_create_site
 	sudo /etc/init.d/nginx reload
 
 	# put the template index.html file into the new domains web dir
-	sudo cp $CURRENT_DIR/index.html.template $WEB_DIR/$SITE_DIR/index.html
+	sudo cp $CURRENT_DIR/$NGINX_TEMPLATE_DIR/index.html.template $WEB_DIR/$SITE_DIR/index.html
 	sudo $SED -i "s/SITE/$DOMAIN/g" $WEB_DIR/$SITE_DIR/index.html
-	sudo chown nginx:nginx $WEB_DIR/$SITE_DIR/index.html
+	sudo chown $NGINX_USER_DEFAULT:$NGINX_GROUP_DEFAULT $WEB_DIR/$SITE_DIR/index.html
 
 	echo "Site Created for $DOMAIN"
 }
