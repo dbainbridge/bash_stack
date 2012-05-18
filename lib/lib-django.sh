@@ -6,80 +6,49 @@
 #
 # My ref: http://www.linode.com/?r=aadfce9845055011e00f0c6c9a5c01158c452deb
 
-function django_get_project_path {
-    PROJECT_NAME="$1"
-    echo "/srv/$PROJECT_NAME"
-}
+PROJECT_CODE_DIR=app
+DJANGO_PROJECT=webapp
 
 function django_change_project_owner {
+    # django_change_project_owner(project_path, user)
     PROJECT_PATH="$1"
     USER="$2"
-    GROUP="$3"
-    if [ -z "$USER" ]; then
-        USER="www-data"
-    fi
-    if [ -z "$GROUP" ]; then
-        GROUP="$USER"
-    fi
-    chown -R "$USER:$GROUP" "$PROJECT_PATH"
+    chown -R "$USER:$USER" "$PROJECT_PATH"
 }
-
 
 function django_create_project {
-    # $1 - name of the project to create create
+    # django_create_project(project_path)
 
-    PROJECT_NAME="$1"
-    if [ -z "$PROJECT_NAME" ]; then
-        echo "django_create_project() requires the project name as the first argument"
+    PROJECT_PATH="$1"
+    if [ -z "$PROJECT_PATH" ]; then
+        echo "django_create_project() requires the project root path as the first argument"
         return 1;
     fi
-    PROJECT_PATH=`django_get_project_path "$PROJECT_NAME"`
 
-    mkdir -p "$PROJECT_PATH/app" "$PROJECT_PATH/app/conf/apache"
+    mkdir -p "$PROJECT_PATH/$PROJECT_CODE_DIR/conf/apache"
     mkdir -p "$PROJECT_PATH/logs" "$PROJECT_PATH/run/eggs"
 
-    virtualenv --no-site-packages "$PROJECT_PATH/venv"
-    pip -E "$PROJECT_PATH/venv" install django
+    virtualenv "$PROJECT_PATH/venv"
+    $PROJECT_PATH/venv/bin/pip install Django
 
-    pushd "$PROJECT_PATH/app"
-    "$PROJECT_PATH/venv/bin/python" "$PROJECT_PATH/venv/bin/django-admin.py" startproject webapp
+    pushd "$PROJECT_PATH/$PROJECT_CODE_DIR"
+    "$PROJECT_PATH/venv/bin/python" "$PROJECT_PATH/venv/bin/django-admin.py" startproject "$DJANGO_PROJECT" .
     popd
-    mkdir -p "$PROJECT_PATH/app/webapp/site_media"
+    mkdir -p "$PROJECT_PATH/$PROJECT_CODE_DIR/$DJANGO_PROJECT/static"
 
-    cat > "$PROJECT_PATH/app/conf/apache/django.wsgi" << EOF
-import os
-import sys
-
-root_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
-sys.path.insert(0, os.path.abspath(os.path.join(root_path, 'venv/lib/python2.6/site-packages/')))
-sys.path.insert(0, os.path.abspath(os.path.join(root_path, 'app')))
-sys.path.insert(0, os.path.abspath(os.path.join(root_path, 'app', 'webapp')))
-
-os.environ['DJANGO_SETTINGS_MODULE'] = 'settings'
-
-import django.core.handlers.wsgi
-application = django.core.handlers.wsgi.WSGIHandler()
-EOF
+    echo "Django" >> "$PROJECT_PATH/$PROJECT_CODE_DIR/requirements.txt"
 }
-
 
 function django_install_db_driver {
-    # $1 - project root
-    # $2 - driver package
-    pip -E "$1/venv" install "$2"
+    # django_install_db_driver(project_path, driver_package)
+    $1/venv/bin/pip install "$2"
+    echo "$2" >> "$PROJECT_PATH/$PROJECT_CODE_DIR/requirements.txt"
 }
 
-
 function django_configure_db_settings {
-    # $1 - project root
-    # $2 - engine
-    # $3 - name
-    # $4 - user
-    # $5 - password
-    # $6 - host (optional)
-    # $7 - port (optional)
-
-    SETTINGS="$1/app/webapp/settings.py"
+    # django_configure_db_settings(project_path, engine, name, user, password, [host, [port]])
+    PROJECT_PATH="$1"
+    SETTINGS="$PROJECT_PATH/$PROJECT_CODE_DIR/$DJANGO_PROJECT/settings.py"
     sed -i -e "s/'ENGINE': 'django.db.backends.'/'ENGINE': 'django.db.backends.$2'/" "$SETTINGS"
     sed -i -e "s/'NAME': ''/'NAME': '$3'/" "$SETTINGS"
     sed -i -e "s/'USER': ''/'USER': '$4'/" "$SETTINGS"
@@ -92,18 +61,13 @@ function django_configure_db_settings {
     fi
 }
 
-
 function django_configure_apache_virtualhost {
-
-    # $1 - required - the hostname of the apache virtualhost to create
-    # $2 - required - path to the django project
-    # $3 - wsgi process user
-    # $4 - wsgi process group
+    # django_configure_apache_virtualhost(hostname, project_path, wsgi_user)
 
     VHOST_HOSTNAME="$1"
     PROJECT_PATH="$2"
     USER="$3"
-    GROUP="$4"
+    GROUP="$USER"
 
     if [ -z "$VHOST_HOSTNAME" ]; then
         echo "django_configure_apache_virtualhost() requires the hostname as the first argument"
@@ -115,38 +79,37 @@ function django_configure_apache_virtualhost {
         return 1;
     fi
 
-    if [ -z "$USER" ]; then
-        USER="www-data"
-    fi
-    if [ -z "$GROUP" ]; then
-        GROUP="$USER"
-    fi
+    APACHE_CONF="200-$VHOST_HOSTNAME"
+    APACHE_CONF_PATH="$PROJECT_PATH/$PROJECT_CODE_DIR/conf/apache/$APACHE_CONF"
 
-    cat > "/etc/apache2/sites-available/$VHOST_HOSTNAME" << EOF
+    cat > "$APACHE_CONF_PATH" << EOF
 <VirtualHost *:80>
     ServerAdmin root@$VHOST_HOSTNAME
     ServerName $VHOST_HOSTNAME
+    ServerSignature Off
 
-    Alias /site_media/ $PROJECT_PATH/app/webapp/site_media/
-    Alias /media/ $PROJECT_PATH/venv/lib/python2.6/site-packages/django/contrib/admin/media/
-    Alias /robots.txt $PROJECT_PATH/app/webapp/site_media/robots.txt
-    Alias /favicon.ico $PROJECT_PATH/app/webapp/site_media/favicon.ico
+    Alias /static/ $PROJECT_PATH/$PROJECT_CODE_DIR/$DJANGO_PROJECT/static/
+    Alias /robots.txt $PROJECT_PATH/$PROJECT_CODE_DIR/$DJANGO_PROJECT/static/robots.txt
+    Alias /favicon.ico $PROJECT_PATH/$PROJECT_CODE_DIR/$DJANGO_PROJECT/static/favicon.ico
 
-    CustomLog "|/usr/sbin/rotatelogs $PROJECT_PATH/logs/access.log.%Y%m%d-%H%M%S 5M" combined
-    ErrorLog "|/usr/sbin/rotatelogs $PROJECT_PATH/logs/error.log.%Y%m%d-%H%M%S 5M"
+    SetEnvIf User_Agent "monit/*" dontlog
+    CustomLog "|/usr/sbin/rotatelogs $PROJECT_PATH/logs/access.log.%Y%m%d-%H%M 5M" combined env=!dontlog
+    ErrorLog "|/usr/sbin/rotatelogs $PROJECT_PATH/logs/error.log.%Y%m%d-%H%M 5M"
     LogLevel warn
 
-    WSGIDaemonProcess $VHOST_HOSTNAME user=$USER group=$GROUP processes=1 threads=15 maximum-requests=10000 python-path=$PROJECT_PATH/venv/lib/python2.6/site-packages python-eggs=$PROJECT_PATH/run/eggs
-    WSGIProcessGroup $VHOST_HOSTNAME
-    WSGIScriptAlias / $PROJECT_PATH/app/conf/apache/django.wsgi
+    WSGIScriptAlias / $PROJECT_PATH/$PROJECT_CODE_DIR/$DJANGO_PROJECT/wsgi.py
 
-    <Directory $PROJECT_PATH/app/webapp/site_media>
+    WSGIDaemonProcess $VHOST_HOSTNAME user=$USER group=$GROUP processes=2 threads=10 maximum-requests=10000 display-name=%{GROUP} python-path=$PROJECT_PATH/$PROJECT_CODE_DIR:$PROJECT_PATH/venv/lib/python2.7/site-packages python-eggs=$PROJECT_PATH/run/eggs
+    WSGIProcessGroup $VHOST_HOSTNAME
+    WSGIScriptAlias / $PROJECT_PATH/$PROJECT_CODE_DIR/$DJANGO_PROJECT/wsgi.py
+
+    <Directory $PROJECT_PATH/$PROJECT_CODE_DIR/$DJANGO_PROJECT/static>
         Order deny,allow
         Allow from all
         Options -Indexes FollowSymLinks
     </Directory>
 
-    <Directory $PROJECT_PATH/app/conf/apache>
+    <Directory $PROJECT_PATH/$PROJECT_CODE_DIR/conf/apache>
         Order deny,allow
         Allow from all
     </Directory>
@@ -154,5 +117,6 @@ function django_configure_apache_virtualhost {
  </VirtualHost>
 EOF
 
-    a2ensite "$VHOST_HOSTNAME"
+    ln -s -t /etc/apache2/sites-available/ "$APACHE_CONF_PATH"
+    a2ensite "$APACHE_CONF"
 }
