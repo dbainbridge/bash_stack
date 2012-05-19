@@ -1,3 +1,2 @@
 #!/bin/bash
-source ../bash_stack.sh
-
+source "/usr/local/lib/bash_stack/bash_stack.sh"

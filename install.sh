@@ -1,6 +1,7 @@
 #!/bin/bash
 
 INSTALL_LOCATION="/usr/local/lib/bash_stack"
+INSTALL_LOCATION_BIN="/usr/local/bin"
 #INSTALL_LOCATION="/Users/dkb/bash_stack"
 
 if [ "$1" ] ; then
@@ -23,9 +24,9 @@ if [ -d ./lib ] ; then
 	cp ./bash_stack.sh "$INSTALL_LOCATION"
 	cp -r ./default_html "$INSTALL_LOCATION"
     cp -r ./default_conf "$INSTALL_LOCATION"
-    cp -r ./bin/* "$INSTALL_LOCATION/bin"
-    chmod +x ./bin/nginxcreatesite
-    chmod +x ./bin/nginxensite
+    cp -r ./bin/* "$INSTALL_LOCATION_BIN"
+    chmod +x "$INSTALL_LOCATION_BIN/nginxcreatesite"
+    chmod +x "$INSTALL_LOCATION_BIN//nginxensite"
 
 	echo '#!/bin/bash' > "$INSTALL_LOCATION/tmp.tmp.sh"
 	echo "BASH_STACK_INSTALL_DIR=\"$INSTALL_LOCATION\"" >> "$INSTALL_LOCATION/tmp.tmp.sh"
