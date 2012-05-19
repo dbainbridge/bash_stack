@@ -128,7 +128,7 @@ function nginx_create_site
 
 	# Now we need to copy the virtual host template
 	CONFIG=$NGINX_SITES_AVAILABLE/$DOMAIN.conf
-	sudo cp $CURRENT_DIR/$NGINX_TEMPLATE_DIR/virtual_host.template $CONFIG
+	sudo cp $NGINX_TEMPLATE_DIR/virtual_host.template $CONFIG
 	sudo $SED -i "s/DOMAIN/$DOMAIN/g" $CONFIG
 	sudo $SED -i "s!ROOT!$WEB_DIR/$SITE_DIR!g" $CONFIG
 
@@ -144,7 +144,7 @@ function nginx_create_site
 	sudo /etc/init.d/nginx reload
 
 	# put the template index.html file into the new domains web dir
-	sudo cp $CURRENT_DIR/$NGINX_TEMPLATE_DIR/index.html.template $WEB_DIR/$SITE_DIR/index.html
+	sudo cp $NGINX_TEMPLATE_DIR/index.html.template $WEB_DIR/$SITE_DIR/index.html
 	sudo $SED -i "s/SITE/$DOMAIN/g" $WEB_DIR/$SITE_DIR/index.html
 	sudo chown $NGINX_USER_DEFAULT:$NGINX_GROUP_DEFAULT $WEB_DIR/$SITE_DIR/index.html
 
