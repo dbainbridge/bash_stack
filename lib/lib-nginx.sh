@@ -285,11 +285,11 @@ EOF
 	mkdir -p "$NGINX_CONF_PATH/sites-available"
 
 	#create default site & start nginx
-	nginx_create_site "default" "localhost" "0" "" "$NGINX_USE_PHP" "$NGINX_USE_PERL"
-	nginx_create_site "$NGINX_SSL_ID" "localhost" "1" "" "$NGINX_USE_PHP" "$NGINX_USE_PERL"
+	#nginx_create_site "default" "localhost" "0" "" "$NGINX_USE_PHP" "$NGINX_USE_PERL"
+	#nginx_create_site "$NGINX_SSL_ID" "localhost" "1" "" "$NGINX_USE_PHP" "$NGINX_USE_PERL"
 
-	nginx_ensite      "default"
-	nginx_ensite      "$NGINX_SSL_ID"
+	#nginx_ensite      "default"
+	#nginx_ensite      "$NGINX_SSL_ID"
 	
 
 	#delete build directory
