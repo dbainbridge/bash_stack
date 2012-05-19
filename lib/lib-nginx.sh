@@ -115,7 +115,7 @@ function nginx_create_site
 		DOMAIN=`echo $DOMAIN | tr '[A-Z]' '[a-z]'`
 		echo "Creating hosting for:" $DOMAIN
 	else
-		echo "invalid domain name"
+		echo "invalid domain name $DOMAIN"
 		exit 1 
 	fi
 
