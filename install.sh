@@ -24,6 +24,7 @@ if [ -d ./lib ] ; then
 	cp ./bash_stack.sh "$INSTALL_LOCATION"
 	cp -r ./default_html "$INSTALL_LOCATION"
     cp -r ./default_conf "$INSTALL_LOCATION"
+    cp -r ./templates "$INSTALL_LOCATION"
     cp -r ./bin/* "$INSTALL_LOCATION_BIN"
     chmod +x "$INSTALL_LOCATION_BIN/nginxcreatesite"
     chmod +x "$INSTALL_LOCATION_BIN//nginxensite"
