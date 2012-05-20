@@ -21,7 +21,8 @@ USER_TEMPLATE_DIR="/home/$SUDO_USER/nginxmksite_templates"
 
 LOGRO_FREQ="monthly"
 LOGRO_ROTA="12"
-
+LOGROTATE_CONF_DIR="/etc/logrotate.d"
+LOGROTATE_SITES_DIR="$LOGROTATE_CONF_DIR/sites.d"
 
 NGINX_SSL_ID="nginx_ssl"
 
@@ -120,8 +121,15 @@ function mk_site {
     cp -Rp "$PUBLIC_TEMPLATE" "$SITE_DIR"
     echo "done!"
   fi
-	sudo $SED -i "s/SITE/$DOMAIN/g" $SITE_DIR/index.html
-	sudo chown -R $NGINX_USER_DEFAULT:$NGINX_GROUP_DEFAULT "$SITE_DIR"
+
+  #simple substition in template files
+  for fileTemplate in "$PUBLIC_DIR/"*.template
+	do
+	  $SED -i "s/SITE/$DOMAIN/g" "$fileTemplate"
+	  mv "$fileTemplate" "${fileTemplate/.template}"
+	done
+  
+  sudo chown -R $NGINX_USER_DEFAULT:$NGINX_GROUP_DEFAULT "$SITE_DIR"
 }
 
 function mk_logs {
@@ -147,18 +155,13 @@ function mk_logs {
 
 function mk_nginx_conf {
 		# Now we need to copy the virtual host template
-	CONFIG=$NGINX_SITES_AVAILABLE/$DOMAIN.conf
-	sudo cp $NGINX_TEMPLATE_DIR/server_block.template $CONFIG
-	sudo $SED -i "s/DOMAIN/$DOMAIN/g" $CONFIG
-	sudo $SED -i "s!ROOT!$SITE_DIR!g" $CONFIG
+  CONFIG="$NGINX_SITES_AVAILABLE/$DOMAIN.conf"
+  sudo cp "$DEFAULT_TEMPLATE_DIR/server_block.template" $CONFIG
 
 
-  echo "Creating apache config file: $NGINX_SITE_CONF..."
+  echo "Creating nginx config file: $NGINX_SITE_CONF..."
   sed -e "s:LOG_DIR:$LOG_DIR:g"\
-      -e "s:ROOT:$SITE_DIR:g"\
-      -e "s:USER:$SUDO_USER:g"\
-      -e "s:GROUP:$SUDO_GID:g"\
-      -e "s:ESCAPED_DOMAIN:$ESCAPED_DOMAIN:g"\
+      -e "s:ROOT:$PUBLIC_DIR:g"\
       -e "s:DOMAIN:$DOMAIN:g"\
       "$SERVER_BLOCK_TEMPLATE" > "$NGINX_SITE_CONF"
   echo "done!"
@@ -173,7 +176,7 @@ function mk_nginx_conf {
 }
 
 function mk_logrotate_conf {
-  echo "Creating logrotate config file: $FILE..."
+  echo "Creating logrotate config file: $LOGROTATE_CONF..."
   sed -e "s:LOG_DIR:$LOG_DIR:g" "$LOGROTATE_TEMPLATE" > "$LOGROTATE_CONF"
   echo "done!"
 
@@ -212,7 +215,7 @@ function nginx_create_site
 	PATTERN="^([[:alnum:]]([[:alnum:]\-]{0,61}[[:alnum:]])?\.)+[[:alpha:]]{2,6}$"
 	if [[ "$DOMAIN" =~ $PATTERN ]]; then
 		DOMAIN=`echo $DOMAIN | tr '[A-Z]' '[a-z]'`
-		echo "Creating hosting for:" $DOMAIN
+		echo "########  Creating hosting for: $DOMAIN  ########"
 	else
 		echo "invalid domain name $DOMAIN"
 		exit 1 
@@ -220,15 +223,13 @@ function nginx_create_site
 
 	#Replace dots with underscores
 	SITE_NAME=`echo $DOMAIN | $SED 's/\./_/g'`
-    SITE_DIR=$WEB_DIR/$SITE_NAME
+    SITES_DIR="/var/www/sites"
+    SITE_DIR=$SITES_DIR/$SITE_NAME
 
     NGINX_SITE_CONF="$NGINX_SITES_AVAILABLE/$DOMAIN"
     PUBLIC_DIR="$SITE_DIR/public"
     LOG_DIR="$SITE_DIR/log"
-
-    echo "Template DIR"
-    echo "$USER_TEMPLATE_DIR/public"
-    echo "$DEFAULT_TEMPLATE_DIR/public"
+    LOGROTATE_CONF="$LOGROTATE_SITES_DIR/$DOMAIN.conf"
 
 	# Determine template directories ========================
 
@@ -243,7 +244,7 @@ function nginx_create_site
 	  exit
 	fi
 
-	# Choose the user's apache.conf template first
+	# Choose the user's server_block.template first
 	# If it doesn't exist, use the default
 	if [[ -f "$USER_TEMPLATE_DIR/server_block.template" ]]
 	  then SERVER_BLOCK_TEMPLATE="$USER_TEMPLATE_DIR/server_block.template"
@@ -258,12 +259,39 @@ function nginx_create_site
 	# If it doesn't exist, use the default
 	if [[ -f "$USER_TEMPLATE_DIR/logrotate.conf" ]]
 	  then LOGROTATE_TEMPLATE="$USER_TEMPLATE_DIR/logrotate.conf"
-	elif [[ -f "$DEFAULT_TEMPLATE_DIR/apache.conf" ]]
+	elif [[ -f "$DEFAULT_TEMPLATE_DIR/logrotate.conf" ]]
 	  then LOGROTATE_TEMPLATE="$DEFAULT_TEMPLATE_DIR/logrotate.conf"
 	else 
 	  echo "No logrotate.conf template can be found. Aborted."
 	  exit
 	fi
+
+# Create necessary directories ==========================
+
+if [[ ! -d "$NGINX_SITES_AVAILABLE" ]]
+  then 
+  mkdir -p "$NGINX_SITES_AVAILABLE"
+  chgrp $SUDO_GID "$NGINX_SITES_AVAILABLE"
+fi
+if [[ ! -d "$LOGROTATE_SITES_DIR" ]]
+  then 
+  mkdir -p "$LOGROTATE_SITES_DIR"
+  chgrp $SUDO_GID "$LOGROTATE_SITES_DIR"
+fi
+if [[ ! -d "$SITES_DIR" ]]
+  then 
+  mkdir -p "$SITES_DIR"
+  chown $SUDO_USER:$SUDO_GID "$SITES_DIR"
+fi
+
+# Create logrotate conf file for all sites ===============
+
+if [[ ! -f "$LOGROTATE_CONF_DIR/sites" ]]
+  then
+  echo "include $LOGROTATE_SITES_DIR" > "$LOGROTATE_CONF_DIR/sites"
+  chgrp $SUDO_GID "$LOGROTATE_CONF_DIR/sites"
+fi
+  
 
 	if [[ -d "$SITE_DIR" ]] 
 	  then
@@ -488,7 +516,8 @@ EOF
 	
 
 	#delete build directory
-	chown -R www-data:www-data /srv/www
+	rm -rf /tmp/nginx
+	#chown -R www-data:www-data /srv/www
 
 
 	#return to original directory
