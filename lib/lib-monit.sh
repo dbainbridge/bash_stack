@@ -231,3 +231,35 @@ cat <<EOT >/etc/monit/conf.d/apache2.cfg
     group www
 EOT
 }
+
+function monit_def_nginx {
+cat <<EOT >/etc/monit/conf.d/nginx.cfg
+check process nginx with pidfile /opt/nginx/logs/nginx.pid
+  start program = "/etc/init.d/nginx start"
+  stop program  = "/etc/init.d/nginx stop"
+
+  if cpu > 60% for 2 cycles then alert
+  if cpu > 80% for 5 cycles then alert
+  if totalmem > 200.0 MB for 5 cycles then alert
+  if failed host localhost port 80 protocol HTTP request / within 2 cycles then alert
+  if loadavg(5min) greater than 10 for 8 cycles then stop
+  if 5 restarts with 5 cycles then timeout
+  depends on nginx_bin
+  depends on nginx_rc
+  group www
+
+  check file nginx_bin with path /opt/nginx/sbin/nginx
+    if failed checksum then unmonitor
+    if failed permission 755 then unmonitor
+    if failed uid root then unmonitor
+    if failed gid root then unmonitor
+    group www
+
+  check file nginx_rc with path /etc/init.d/nginx
+    if failed checksum then unmonitor
+    if failed permission 755 then unmonitor
+    if failed uid root then unmonitor
+    if failed gid root then unmonitor
+    group www
+EOT
+}
