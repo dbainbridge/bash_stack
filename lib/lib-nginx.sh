@@ -12,17 +12,15 @@ NGINX_COMPILE_WITH_MODULES="--with-http_stub_status_module"
 
 NGINX_SITES_AVAILABLE="$NGINX_CONF_PATH/sites-available"
 NGINX_SITES_ENABLED="$NGINX_CONF_PATH/sites-enabled"
-NGINX_TEMPLATE_DIR="/usr/local/lib/bash_stack/templates"
-WEB_DIR="/var/www"
-
+WEB_DIR="/var/www/sites"
 NGINX_USER_DEFAULT="www-data"
 NGINX_GROUP_DEFAULT="www-data"
 
+DEFAULT_TEMPLATE_DIR="/usr/local/lib/bash_stack/templates"
+USER_TEMPLATE_DIR="/home/$SUDO_USER/nginxmksite_templates"
+
 LOGRO_FREQ="monthly"
 LOGRO_ROTA="12"
-
-APACHE_HTTP_PORT=8080
-APACHE_HTTPS_PORT=8443
 
 
 NGINX_SSL_ID="nginx_ssl"
@@ -94,11 +92,104 @@ function perl_fcgi_install
 }
 
 
+function nginx_ensite
+{
+	local server_id="$1"
+	rm -rf "$NGINX_CONF_PATH/sites-enabled/$server_id" 
+	ln -s "$NGINX_CONF_PATH/sites-available/$server_id" "$NGINX_CONF_PATH/sites-enabled/$server_id" 
+	/etc/init.d/nginx restart
+}
+
+function nginx_dissite
+{
+	local server_id="$1"
+	rm -rf "$NGINX_CONF_PATH/sites-enabled/$server_id"
+	/etc/init.d/nginx restart
+}
+
+
+# mk_* functions from from apache a2mksite.sh script with mods for nginx
+function mk_site {
+  [[ ! -d $SITE_DIR ]] || rm -R "$SITE_DIR"
+  echo "Creating $PUBLIC_DIR..."
+  mkdir -p "$PUBLIC_DIR"
+  echo "done!"
+  if [[ -d $PUBLIC_TEMPLATE ]]
+    then
+    echo "Copying public $PUBLIC_TEMPLATE to $SITE_DIR..."
+    cp -Rp "$PUBLIC_TEMPLATE" "$SITE_DIR"
+    echo "done!"
+  fi
+	sudo $SED -i "s/SITE/$DOMAIN/g" $SITE_DIR/index.html
+	sudo chown -R $NGINX_USER_DEFAULT:$NGINX_GROUP_DEFAULT "$SITE_DIR"
+}
+
+function mk_logs {
+  if [[ ! -d $LOG_DIR ]]
+    then
+    echo "Creating log dir: $LOG_DIR..."
+    mkdir "$LOG_DIR"
+    echo "done!"
+  fi
+  
+  touch "$LOG_DIR/access.log"
+  touch "$LOG_DIR/error.log"
+
+  echo "Chowning log dir to root..."
+  chown -R 0:$SUDO_GID "$LOG_DIR"
+  echo "done!"
+
+  echo "Chmoding log dir to 1750..."
+  chmod -R 750 "$LOG_DIR"
+  chmod 1750 "$LOG_DIR"
+  echo "done!"
+}
+
+function mk_nginx_conf {
+		# Now we need to copy the virtual host template
+	CONFIG=$NGINX_SITES_AVAILABLE/$DOMAIN.conf
+	sudo cp $NGINX_TEMPLATE_DIR/server_block.template $CONFIG
+	sudo $SED -i "s/DOMAIN/$DOMAIN/g" $CONFIG
+	sudo $SED -i "s!ROOT!$SITE_DIR!g" $CONFIG
+
+
+  echo "Creating apache config file: $NGINX_SITE_CONF..."
+  sed -e "s:LOG_DIR:$LOG_DIR:g"\
+      -e "s:ROOT:$SITE_DIR:g"\
+      -e "s:USER:$SUDO_USER:g"\
+      -e "s:GROUP:$SUDO_GID:g"\
+      -e "s:ESCAPED_DOMAIN:$ESCAPED_DOMAIN:g"\
+      -e "s:DOMAIN:$DOMAIN:g"\
+      "$SERVER_BLOCK_TEMPLATE" > "$NGINX_SITE_CONF"
+  echo "done!"
+
+  echo "Chowning nginx config file to root..."
+  chown 0:$SUDO_GID "$NGINX_SITE_CONF"
+  echo "done!"
+
+  echo "Chmoding nginx config file to 740..."
+  chmod 740 "$NGINX_SITE_CONF"
+  echo "done!"
+}
+
+function mk_logrotate_conf {
+  echo "Creating logrotate config file: $FILE..."
+  sed -e "s:LOG_DIR:$LOG_DIR:g" "$LOGROTATE_TEMPLATE" > "$LOGROTATE_CONF"
+  echo "done!"
+
+  echo "Chowning logrotate config file to root..."
+  chown 0:$SUDO_GID "$LOGROTATE_CONF"
+  echo "done!"
+
+  echo "Chmoding logrotate file to 740..."
+  chmod 740 "$LOGROTATE_CONF"
+  echo "done!"
+}
 
 function nginx_create_site
 {
 	# Based on script from http://www.sebdangerfield.me.uk/2011/03/automatically-creating-new-virtual-hosts-with-nginx-bash-script/
-
+    # Based on https://github.com/postpostmodern/a2mksite
 	
 	SED=`which sed`
 	CURRENT_DIR=`dirname $0`
@@ -107,7 +198,15 @@ function nginx_create_site
 		echo "No domain name given"
 		exit 1
 	fi
+
+	if [[ -z "$SUDO_USER" ]]
+      then
+        echo "Use sudo"
+        exit
+    fi
+
 	DOMAIN=$1
+    CHOICES="Overwrite Skip"
 
 	# check the domain is roughly valid!
 	PATTERN="^([[:alnum:]]([[:alnum:]\-]{0,61}[[:alnum:]])?\.)+[[:alpha:]]{2,6}$"
@@ -120,35 +219,130 @@ function nginx_create_site
 	fi
 
 	#Replace dots with underscores
-	SITE_DIR=`echo $DOMAIN | $SED 's/\./_/g'`
+	SITE_NAME=`echo $DOMAIN | $SED 's/\./_/g'`
+    SITE_DIR=$WEB_DIR/$SITE_NAME
+
+    NGINX_SITE_CONF="$NGINX_SITES_AVAILABLE/$DOMAIN"
+    PUBLIC_DIR="$SITE_DIR/public"
+    LOG_DIR="$SITE_DIR/log"
+
+    echo "Template DIR"
+    echo "$USER_TEMPLATE_DIR/public"
+    echo "$DEFAULT_TEMPLATE_DIR/public"
+
+	# Determine template directories ========================
+
+	# Choose the user's public/ template first
+	# If it doesn't exist, use the default
+	if [[ -d "$USER_TEMPLATE_DIR/public" ]]
+	  then PUBLIC_TEMPLATE="$USER_TEMPLATE_DIR/public"
+	elif [[ -d "$DEFAULT_TEMPLATE_DIR/public" ]]
+	  then PUBLIC_TEMPLATE="$DEFAULT_TEMPLATE_DIR/public"
+	else
+	  echo "No public/ template can be found. Aborted."
+	  exit
+	fi
+
+	# Choose the user's apache.conf template first
+	# If it doesn't exist, use the default
+	if [[ -f "$USER_TEMPLATE_DIR/server_block.template" ]]
+	  then SERVER_BLOCK_TEMPLATE="$USER_TEMPLATE_DIR/server_block.template"
+	elif [[ -f "$DEFAULT_TEMPLATE_DIR/server_block.template" ]]
+	  then SERVER_BLOCK_TEMPLATE="$DEFAULT_TEMPLATE_DIR/server_block.template"
+	else
+	  echo "No server_block.template can be found. Aborted."
+	  exit
+	fi
+
+	# Choose the user's logrotate.conf template first
+	# If it doesn't exist, use the default
+	if [[ -f "$USER_TEMPLATE_DIR/logrotate.conf" ]]
+	  then LOGROTATE_TEMPLATE="$USER_TEMPLATE_DIR/logrotate.conf"
+	elif [[ -f "$DEFAULT_TEMPLATE_DIR/apache.conf" ]]
+	  then LOGROTATE_TEMPLATE="$DEFAULT_TEMPLATE_DIR/logrotate.conf"
+	else 
+	  echo "No logrotate.conf template can be found. Aborted."
+	  exit
+	fi
+
+	if [[ -d "$SITE_DIR" ]] 
+	  then
+	  echo "$SITE_DIR already exists..."
+	  select choice in $CHOICES; do
+	    if [ $choice ]; then
+	      case $choice in
+	        Overwrite)
+	          mk_site
+	          break;;
+	        Skip) break;;
+	        esac
+	    else
+	      echo 'Invalid selection'
+	    fi
+	  done
+	else
+	  mk_site
+	fi
+
+	mk_logs
+
+	if [[ -f "$NGINX_SITE_CONF" ]] 
+	  then
+	  echo "$NGINX_SITE_CONF already exists..."
+	  select choice in $CHOICES; do
+	    if [ $choice ]; then
+	      case $choice in
+	        Overwrite)
+	          mk_nginx_conf
+	          break;;
+	        Skip) break;;
+	        esac
+	    else
+	      echo 'Invalid selection'
+	    fi
+	  done
+	  else
+	  mk_nginx_conf
+	fi
+
+	if [[ -f "$LOGROTATE_CONF" ]] 
+	  then
+	  echo "$LOGROTATE_CONF already exists..."
+	  select choice in $CHOICES; do
+	    if [ $choice ]; then
+	      case $choice in
+	        Overwrite)
+	          mk_logrotate_conf
+	          break;;
+	        Skip) break;;
+	        esac
+	    else
+	      echo 'Invalid selection'
+	    fi
+	  done
+	  else
+	  mk_logrotate_conf
+	fi
 
 	# verify required site site conf directories exist
 	sudo mkdir -p $NGINX_SITES_AVAILABLE
 	sudo mkdir -p $NGINX_SITES_ENABLED
 
-	# Now we need to copy the virtual host template
-	CONFIG=$NGINX_SITES_AVAILABLE/$DOMAIN.conf
-	sudo cp $NGINX_TEMPLATE_DIR/virtual_host.template $CONFIG
-	sudo $SED -i "s/DOMAIN/$DOMAIN/g" $CONFIG
-	sudo $SED -i "s!ROOT!$WEB_DIR/$SITE_DIR!g" $CONFIG
 
 	# set up web root
-	sudo mkdir $WEB_DIR/$SITE_DIR
-	sudo chown $NGINX_USER_DEFAULT:$NGINX_GROUP_DEFAULT -R $WEB_DIR/$SITE_DIR
+	sudo mkdir -p $SITE_DIR
+	sudo chown $NGINX_USER_DEFAULT:$NGINX_GROUP_DEFAULT -R $SITE_DIR
 	sudo chmod 600 $CONFIG
 
+	nginx_ensite $DOMAIN
 	# create symlink to enable site
-	sudo ln -s $CONFIG $NGINX_SITES_ENABLED/$DOMAIN.conf
-
-	# reload Nginx to pull in new config
-	sudo /etc/init.d/nginx reload
-
-	# put the template index.html file into the new domains web dir
-	sudo cp $NGINX_TEMPLATE_DIR/index.html.template $WEB_DIR/$SITE_DIR/index.html
-	sudo $SED -i "s/SITE/$DOMAIN/g" $WEB_DIR/$SITE_DIR/index.html
-	sudo chown $NGINX_USER_DEFAULT:$NGINX_GROUP_DEFAULT $WEB_DIR/$SITE_DIR/index.html
+	#sudo ln -s $CONFIG $NGINX_SITES_ENABLED/$DOMAIN.conf
 
 	echo "Site Created for $DOMAIN"
+
+	# reload Nginx to pull in new config
+	sudo "$NGINX_SBIN_PATH" -s reload
+
 }
 
 
@@ -283,6 +477,7 @@ EOF
 
 	mkdir -p "$NGINX_CONF_PATH/sites-enabled"
 	mkdir -p "$NGINX_CONF_PATH/sites-available"
+
 
 	#create default site & start nginx
 	#nginx_create_site "default" "localhost" "0" "" "$NGINX_USE_PHP" "$NGINX_USE_PERL"

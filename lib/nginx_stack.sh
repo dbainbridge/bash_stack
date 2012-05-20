@@ -227,19 +227,7 @@ EOF
 	chown -R www-data:www-data "$NGINX_PREFIX/$server_id"
 
 }
-function nginx_ensite
-{
-	local server_id="$1"
-	rm -rf "$NGINX_CONF_PATH/sites-enabled/$server_id" 
-	ln -s "$NGINX_CONF_PATH/sites-available/$server_id" "$NGINX_CONF_PATH/sites-enabled/$server_id" 
-	/etc/init.d/nginx restart
-}
-function nginx_dissite
-{
-	local server_id="$1"
-	rm -rf "$NGINX_CONF_PATH/sites-enabled/$server_id"
-	/etc/init.d/nginx restart
-}
+
 function nginx_delete_site
 {
 	local server_id="$1"

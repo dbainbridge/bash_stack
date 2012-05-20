@@ -3,8 +3,9 @@ server {
  
   root ROOT;
  
-  access_log /var/log/nginx/DOMAIN.access.log;
- 
+  access_log LOG_DIR/access.log;
+  error_log LOG_DIR/error.log error;
+  
   index index.html index.htm;
  
   # serve static files directly
