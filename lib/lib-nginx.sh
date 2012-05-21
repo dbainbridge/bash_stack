@@ -12,7 +12,7 @@ NGINX_COMPILE_WITH_MODULES="--with-http_stub_status_module"
 
 NGINX_SITES_AVAILABLE="$NGINX_CONF_PATH/sites-available"
 NGINX_SITES_ENABLED="$NGINX_CONF_PATH/sites-enabled"
-WEB_DIR="/var/www/sites"
+
 NGINX_USER_DEFAULT="www-data"
 NGINX_GROUP_DEFAULT="www-data"
 
