@@ -8,6 +8,7 @@ cd bash_stack
 source install.sh
 
 Now to install nginx from source (installs nginx 1.2.0):
+bash_stack system_enable_universe
 bash_stack nginx_install "www-data" "www-data" "0" "0" "0"
 
 Start nginx:
