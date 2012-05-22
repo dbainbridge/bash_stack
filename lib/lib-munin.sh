@@ -8,6 +8,10 @@ function munin_install {
 	aptitude -y install  munin munin-node
 }
 
+function munin_clone_contrib  {
+    sudo git clone git://github.com/munin-monitoring/contrib.git "/usr/local/lib/bash_stack/support/munin/contrib"
+}
+
 function munin_configure_nginx {
 	if [ -z $1 ]; then
 		echo "No domain/subdomain name given to for munin access.  Example: munin_configure_nginx munin.mydomain.com"
