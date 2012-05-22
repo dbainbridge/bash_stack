@@ -410,9 +410,7 @@ function nginx_install
 
 
 	local curdir=$(pwd)
-
-    system_enable_universe
-    
+   
 	#theres a couple dependencies.
 	aptitude install -y libpcre3-dev libcurl4-openssl-dev libssl-dev
 

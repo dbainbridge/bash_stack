@@ -1,4 +1,6 @@
 #!/bin/bash
+sudo apt-get update
+sudo apt-get upgrade
 
 INSTALL_LOCATION="/usr/local/lib/bash_stack"
 INSTALL_LOCATION_BIN="/usr/local/bin"
