@@ -2,7 +2,7 @@
 
 
 source "/usr/local/lib/bash_stack/lib/lib-nginx.sh"
-echo $SITES_DIR
+SITES_DIR="/var/www/sites"
 
 function munin_install {
 	aptitude -y install  munin munin-node
