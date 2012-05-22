@@ -1,0 +1,2 @@
+#!/bin/bash
+source "/usr/local/lib/bash_stack/bash_stack.sh"; "$@"
