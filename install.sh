@@ -28,7 +28,7 @@ if [ -d ./lib ] ; then
     fi
     cp -r ./templates "$INSTALL_LOCATION"
     cp -r ./bin/* "$INSTALL_LOCATION_BIN"
-    for shellFile in "$INSTALL_LOCATION_BIN"
+    for shellFile in "$INSTALL_LOCATION_BIN/"*
 	do
 	  chmod +x "$shellFile"
 	done
