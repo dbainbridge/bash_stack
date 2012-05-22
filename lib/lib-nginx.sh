@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #nginx settings
-NGINX_VER="1.0.20"
+NGINX_VER="1.2.0"
 NGINX_PREFIX="/opt/nginx"
 NGINX_SBIN_PATH="$NGINX_PREFIX/sbin/nginx"
 NGINX_CONF_PATH="$NGINX_PREFIX/conf"
