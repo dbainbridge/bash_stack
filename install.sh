@@ -28,9 +28,11 @@ if [ -d ./lib ] ; then
     fi
     cp -r ./templates "$INSTALL_LOCATION"
     cp -r ./bin/* "$INSTALL_LOCATION_BIN"
-    chmod +x "$INSTALL_LOCATION_BIN/nginxcreatesite"
-    chmod +x "$INSTALL_LOCATION_BIN//nginxensite"
-
+    for shellFile in "$INSTALL_LOCATION_BIN"
+	do
+	  chmod +x "$shellFile"
+	done
+ 
 	echo '#!/bin/bash' > "$INSTALL_LOCATION/tmp.tmp.sh"
 	echo "BASH_STACK_INSTALL_DIR=\"$INSTALL_LOCATION\"" >> "$INSTALL_LOCATION/tmp.tmp.sh"
 	cat "$INSTALL_LOCATION/bash_stack.sh"  >> "$INSTALL_LOCATION/tmp.tmp.sh"
