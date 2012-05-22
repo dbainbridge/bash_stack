@@ -1,9 +1,25 @@
-A Linode.com StackScript shell script that configures a complete web environment with Apache, PostgreSQL/MySQL/MongoDB, Python, mod_wsgi, virtualenv and Django.
+Script package that I use to simplify setup of an Ubuntu server.  My usage of this script package has only been on Ubuntu 12.04 LTS.
 
-Optionally creates a PostgreSQL/MySQL user and database and installs MongoDB NoSQL database.
+Until there is a friendlier way to access the script functions in this package here is example usage:
 
-By default, it creates a VirtualHost using the reverse DNS of your Linode's primary IP and sets up a sample Django project in the /srv directory.
+aptitude -y install git-core
+git clone git://github.com/dbainbridge/bash_stack.git
+cd bash_stack
+source install.sh
 
-Installs common system and dev utilities, sets up postfix loopback, Uncomplicated Firewall and Fail2Ban.
+Now to install nginx from source (installs nginx 1.2.0):
+source /usr/local/lib/bash_stack/bash_stack.sh; nginx_install "www-data" "www-data" "0" "0" "0"
 
-Writes command output to /root/stackscript.log and records /etc changes using Mercurial. When completed notifies via email.
+Start nginx:
+sudo /opt/nginx/sbin/nginx
+
+A shell script "nginxcreatesite" was installed to /usr/local/bin with the "source install.sh" statement above.  You can then create a nginx virtual host/server block with the command:
+
+sudo nginxcreatesite mydomain.com
+
+The web site files will be located in /var/www/sites/mydomain_com.
+Access/error logs will be generated for each server block located in /var/www/sites/mydomain_com/logs
+All "public" files are located in /var/www/sites/mydomain_com/public
+
+
+
