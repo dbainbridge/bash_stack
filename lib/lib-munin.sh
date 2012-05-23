@@ -54,7 +54,7 @@ EOT
 	  mkdir -p "$SITES_DIR"
 	  chown $SUDO_USER:$SUDO_GID "$SITES_DIR"
 	fi
-	ln -s /var/cache/munin/www/ /var/www/sites/munin
+#	ln -s /var/cache/munin/www/ /var/www/sites/munin
 	nginx_ensite munin
 
 	/etc/init.d/munin-node restart
