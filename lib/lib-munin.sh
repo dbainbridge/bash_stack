@@ -41,12 +41,12 @@ function munin_configure_nginx {
 EOT
 
 
- 	cat <<EOT >"/etc/munin/plugin-conf.d/nginx"
-	[nginx_*]
-	env.url http://localhost/nginx_status
+# 	cat <<EOT >"/etc/munin/plugin-conf.d/nginx"
+#	[nginx_*]
+#	env.url http://localhost/nginx_status
 EOT
 
-    sed -i 's:\[localhost\.localdomain\]:\$1]:g' /etc/munin/munin.conf
+ #   sed -i 's:\[localhost\.localdomain\]:\$1]:g' /etc/munin/munin.conf
 
 
 	if [[ ! -d "$SITES_DIR" ]]
@@ -55,7 +55,7 @@ EOT
 	  chown $SUDO_USER:$SUDO_GID "$SITES_DIR"
 	fi
 #	ln -s /var/cache/munin/www/ /var/www/sites/munin
-	nginx_ensite munin
+#	nginx_ensite munin
 
 	/etc/init.d/munin-node restart
 }
