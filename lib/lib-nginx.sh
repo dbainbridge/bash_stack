@@ -154,10 +154,6 @@ function mk_logs {
 }
 
 function mk_nginx_conf {
-		# Now we need to copy the virtual host template
-  CONFIG="$NGINX_SITES_AVAILABLE/$DOMAIN.conf"
-  sudo cp "$DEFAULT_TEMPLATE_DIR/server_block.template" $CONFIG
-
 
   echo "Creating nginx config file: $NGINX_SITE_CONF..."
   sed -e "s:LOG_DIR:$LOG_DIR:g"\
