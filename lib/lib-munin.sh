@@ -41,9 +41,9 @@ function munin_configure_nginx {
 EOT
 
 
-# 	cat <<EOT >"/etc/munin/plugin-conf.d/nginx"
-#	[nginx_*]
-#	env.url http://localhost/nginx_status
+ 	cat <<EOT >"/etc/munin/plugin-conf.d/nginx"
+	[nginx_*]
+	env.url http://localhost/nginx_status
 EOT
 
  #   sed -i 's:\[localhost\.localdomain\]:\$1]:g' /etc/munin/munin.conf
