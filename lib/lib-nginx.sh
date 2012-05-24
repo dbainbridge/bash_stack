@@ -153,7 +153,7 @@ function mk_logs {
   echo "done!"
 }
 
-function mk_nginx_conf {
+function mk_nginx_site_conf {
 
   echo "Creating nginx config file: $NGINX_SITE_CONF..."
   sed -e "s:LOG_DIR:$LOG_DIR:g"\
@@ -170,6 +170,7 @@ function mk_nginx_conf {
   chmod 740 "$NGINX_SITE_CONF"
   echo "done!"
 }
+
 
 function mk_logrotate_conf {
   echo "Creating logrotate config file: $LOGROTATE_CONF..."
@@ -262,6 +263,7 @@ function nginx_create_site
 	  exit
 	fi
 
+
 # Create necessary directories ==========================
 
 if [[ ! -d "$NGINX_SITES_AVAILABLE" ]]
@@ -317,7 +319,7 @@ fi
 	    if [ $choice ]; then
 	      case $choice in
 	        Overwrite)
-	          mk_nginx_conf
+	          mk_nginx_site_conf
 	          break;;
 	        Skip) break;;
 	        esac
@@ -326,7 +328,7 @@ fi
 	    fi
 	  done
 	  else
-	  mk_nginx_conf
+	  mk_nginx_site_conf
 	fi
 
 	if [[ -f "$LOGROTATE_CONF" ]] 
@@ -370,6 +372,24 @@ fi
 }
 
 
+function mk_nginx_conf {
+
+  echo "Creating main nginx config file: $NGINX_SITE_CONF..."
+  sed -e "s:NGINX_CONF_PATH:$NGINX_CONF_PATH:g"\
+      -e "s:ROOT:$PUBLIC_DIR:g"\
+      -e "s:DOMAIN:$DOMAIN:g"\
+      "$NGINX_CONF_TEMPLATE" > "$NGINX_CONF_FILE"
+  echo "done!"
+
+  echo "Chowning nginx config file to root..."
+  chown 0:$SUDO_GID "$NGINX_CONF_FILE"
+  echo "done!"
+
+  echo "Chmoding nginx config file to 740..."
+  chmod 740 "$NGINX_CONF_FILE"
+  echo "done!"
+}
+
 function nginx_install 
 {
 	if [ ! -n "$1" ]; then
@@ -404,6 +424,16 @@ function nginx_install
 	fi
 
 
+	# Choose the user's basic_nginx.conf template first
+	# If it doesn't exist, use the default
+	if [[ -f "$USER_TEMPLATE_DIR/basic_nginx.conf" ]]
+	  then NGINX_CONF_TEMPLATE="$USER_TEMPLATE_DIR/basic_nginx.conf"
+	elif [[ -f "$DEFAULT_TEMPLATE_DIR/basic_nginx.conf" ]]
+	  then NGINX_CONF_TEMPLATE="$DEFAULT_TEMPLATE_DIR/basic_nginx.conf"
+	else 
+	  echo "No basic_nginx.conf template can be found. Aborted."
+	  exit
+	fi
 
 	local curdir=$(pwd)
    
@@ -436,11 +466,11 @@ function nginx_install
 	#maek eet
 	cd "nginx-$NGINX_VER"
 
-	nginx_conf_file="$NGINX_CONF_PATH/nginx.conf"
+	NGINX_CONF_FILE="$NGINX_CONF_PATH/nginx.conf"
 	nginx_http_log_file="$NGINX_HTTP_LOG_PATH/access.log"
 
 
-	./configure --prefix="$NGINX_PREFIX" --sbin-path="$NGINX_SBIN_PATH" --conf-path="$nginx_conf_file" --pid-path="$NGINX_PID_PATH" \
+	./configure --prefix="$NGINX_PREFIX" --sbin-path="$NGINX_SBIN_PATH" --conf-path="$NGINX_CONF_FILE" --pid-path="$NGINX_PID_PATH" \
 	--error-log-path="$NGINX_ERROR_LOG_PATH" --http-log-path="$nginx_http_log_file" --user="$NGINX_USER" --group="$NGINX_GROUP" \
 	--with-http_ssl_module --with-debug "$NGINX_COMPILE_WITH_MODULES"
 
@@ -466,37 +496,9 @@ function nginx_install
 
 	#setup default nginx config files
 	echo "fastcgi_param  SCRIPT_FILENAME   \$document_root\$fastcgi_script_name;" >> "$NGINX_CONF_PATH/fastcgi_params";
-	cat <<EOF >$NGINX_CONF_PATH/nginx.conf
 
-worker_processes 4;
-
-events
-{
-	worker_connections 1024;
-}
-http
-{
-	include             mime.types;
-	default_type        application/octet-stream;
-
-	server_names_hash_max_size       4096;
-	server_names_hash_bucket_size    4096;		
-
-	#proxy settings (only relevant when nginx used as a proxy)
-	proxy_set_header Host \$host;
-	proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
-	proxy_set_header X-Real-IP \$remote_addr;
-
-
-	keepalive_timeout   65;
-	sendfile            on;
-
-	#gzip               on;
-	#tcp_nopush         on;
-	
-	include $NGINX_CONF_PATH/sites-enabled/*;
-}
-EOF
+	#setup main nginx config file
+	mk_nginx_conf
 
 
 	mkdir -p "$NGINX_CONF_PATH/sites-enabled"
